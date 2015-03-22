@@ -44,6 +44,7 @@ from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTFigure, LTImage
 import os
 from pdfminer.pdfpage import PDFPage
+import urllib
 
 class PDFMine:
 	def __init__(self, filename):
@@ -67,12 +68,12 @@ class PDFMine:
 	def pgcount(self):
 		count=0;
 		for page in PDFPage.create_pages(self.doc):
-			count = count + 1
+		  count = count + 1
 		return count
 		
 	def save_video(self, targetdir):
 		"""Saves all your videos to targetdir """
-		for page in self.doc.get_pages():
+		for page in PDFPage.create_pages(self.doc):
 			if (page.annots):
 				obj=self.doc.getobj(page.annots.objid)
 				for i in obj:
@@ -93,21 +94,24 @@ class PDFMine:
 		
 	def _rect(self, bbox):
 		""" Changes a bounding box into something we can use 
-		with HTML (x,y,width,height measured from top left) """
+		with HTML (x,y,width,height measured from top left).
+		Each of the four values is a percentage, to avoid committing to
+		units such as pixels or points at this, um, point."""
 		pgbox=self.pgbox
 		pgwidth=round(abs(pgbox[0]-pgbox[2]))
 		pgheight=round(abs(pgbox[1]-pgbox[3]))
-		x=round(min(bbox[0], bbox[2]))
-		y=pgheight-(round(max(bbox[1],bbox[3])))
-		width=round(max(bbox[0], bbox[2])-min(bbox[0], bbox[2]))
-		height=round(max(bbox[1], bbox[3])-min(bbox[1], bbox[3]))
+		x=min(bbox[0], bbox[2]) / pgwidth
+		y=(pgheight - max(bbox[1], bbox[3])) / pgheight
+		width=(max(bbox[0], bbox[2]) - min(bbox[0], bbox[2])) / pgwidth
+		height=(max(bbox[1], bbox[3]) - min(bbox[1], bbox[3])) / pgheight
+
 		result={"x":x, "y":y, "width":width, "height":height}
 		return result
 		
 	def _find_objid_pgnum(self, obj):
 		"""Given a page, return the page number """
 		i=0
-		for page in self.doc.get_pages():
+		for page in PDFPage.create_pages(self.doc):
 			i=i+1
 			if self.doc.getobj(page.pageid)==obj:
 				return i
@@ -120,22 +124,33 @@ class PDFMine:
 			self.pgbox=page.mediabox
 			i=i+1
 			print "==== Page %d ====" % i
-			result.append(self._parse_page(page))
+			pgbox=self.pgbox
+			pgwidth=round(abs(pgbox[0]-pgbox[2]))
+			pgheight=round(abs(pgbox[1]-pgbox[3]))
+			pg = self._parse_page(page)
+			pgdata = {"pgno" : i, "pgwidth" : pgwidth,
+			          "pgheight" : pgheight,
+			          "links_metadata" : pg['links_metadata'],
+			          "pg" : pg['main_result']}
+			result.append(pgdata)
 		return result
 	
 	def _parse_page(self, page):
-		result=[]
+		main_result=[]
+		links_metadata=[]
 		vids=self._parse_video(page)
 		if len(vids)>0:
-			result.extend(self._parse_video(page))
+			main_result.extend(self._parse_video(page))
 		links=self._parse_links(page)
-		if len(links)>0:
-			result.extend(links)
+		if len(links['main_result'])>0:
+			main_result.extend(links['main_result'])
+			links_metadata.extend(links['links_metadata'])
 		comments=self._parse_comments(page)
 		if len(comments)>0:
-			result.extend(comments)
-		return result
-	
+			main_result.extend(comments)
+		return {"links_metadata" : links_metadata,
+		        "main_result" : main_result}
+
 	def _parse_comments(self, page):
 		result=[]
 		rsrcmgr = PDFResourceManager()
@@ -156,7 +171,8 @@ class PDFMine:
 		return result
 		
 	def _parse_links(self, page):
-		result=[]
+		main_result=[]
+		links_metadata=[]
 		if (page.annots):
 			obj=self.doc.getobj(page.annots.objid)
 			for i in obj:
@@ -167,25 +183,36 @@ class PDFMine:
 						print "Found link"
 						obj=annotobj["A"].resolve()
 						dest=""
+
+						rect=self._rect(annotobj['Rect'])
+
 						if (obj.has_key('D')):
 							linktype="bookmark"
-							#print dir(obj["D"])
-							
-							namesobj=self.doc.catalog["Names"].resolve()
-							destsobj=namesobj["Dests"].resolve()
-							for name in destsobj["Names"]:
-								if (hasattr(name[0], "objid")):
-									pg=name[0].resolve()
-									dest=self._find_objid_pgnum(pg)
-									
-						rect=self._rect(annotobj['Rect'])
+							dest = self._find_objid_pgnum(self.doc.get_dest(obj["D"])[0].resolve())
+							metadata = {"dest_page" : '\"' + str(dest) + '\"',
+							            "x" : str(rect['x']),
+							            "y" : str(rect['y']),
+							            "height" : str(rect['height']),
+							            "width" : str(rect['width'])}
+
 						if (obj.has_key('URI')):
 							dest=obj['URI']
+							encoded_uri = urllib.quote_plus(str(dest), safe=':/?=&#;')
+							metadata = {"url" : '"' + encoded_uri + '"',
+							            "x" : str(rect['x']),
+							            "y" : str(rect['y']),
+							            "height" : str(rect['height']),
+							            "width" : str(rect['width'])}
+
 						link={"rect":rect, "type":linktype,"dest": dest}
-						result.append(link)
+						main_result.append(link)
+						links_metadata.append(metadata)
 				except:
-					return result
-		return result
+					#FIXME DRY principle
+					return {"main_result" : main_result,
+					        "links_metadata" : links_metadata}
+		return {"main_result" : main_result,
+		        "links_metadata" : links_metadata}
 			
 	def _parse_video(self, page):
 		result=[]
@@ -234,17 +261,67 @@ class PDFMine:
 				    pgobj=destsobj["D"][0]
 				    objid=pgobj.objid
 				x=1;
-				for page in self.doc.get_pages():
+				for page in PDFPage.create_pages(self.doc):
 				    if page.pageid==objid:
 				    	toc.append({"name": title, "page": x});
 				    x=x+1
 		except:
 			pass
 		return toc
-			
+
 	def test(self):
 		print "Starting test on %s" % self.filename
 		result=self.parse_pages()
 		print result
 		print "Found %d pages" % (self.pagecount)
 		print self.get_sections()
+		print metadata_to_json(result)
+
+
+def link_metadata_to_json(link_mdata):
+	result = ""
+	if 'dest_page' in link_mdata.keys():
+		result += ('\t{\"dest_page\" : ' +
+			str(link_mdata["dest_page"]) + ', ' +
+			'\"x\" : ' +
+			str(link_mdata["x"]) + ', ' +
+			'\"y\" : ' +
+			str(link_mdata["y"]) + ', ' +
+			'\"height\" : ' +
+			str(link_mdata["height"]) + ', ' +
+			'\"width\" : ' +
+			str(link_mdata["width"]) + '}')
+	elif 'url' in link_mdata.keys():
+		result += ('\t{\"url\" : ' +
+			str(link_mdata["url"]) + ', ' +
+			'\"x\" : ' +
+			str(link_mdata["x"]) + ', ' +
+			'\"y\" : ' +
+			str(link_mdata["y"]) + ', ' +
+			'\"height\" : ' +
+			str(link_mdata["height"]) + ', ' +
+			'\"width\" : ' +
+			str(link_mdata["width"]) + '}')
+	else:
+		print "Unrecognised link metadata"
+		exit (1)
+	return result
+
+def pg_metadata_to_json(pgdata):
+	result = ('{\"pgno\" : ' + str(pgdata["pgno"]) + ', ' +
+		'\"pgwidth\" : ' + str(pgdata["pgwidth"]) + ', ' +
+		'\"pgheight\" : ' + str(pgdata["pgheight"]) + ', ' +
+		'\"links_metadata\" : [')
+	if len(pgdata["links_metadata"]) > 0:
+		result += '\n' + link_metadata_to_json(pgdata["links_metadata"][0])
+		for link_mdata in pgdata["links_metadata"][1:]:
+			result += ',\n' + link_metadata_to_json(link_mdata)
+	return result + ']}'
+
+def metadata_to_json(pages_result):
+	result = "["
+	if len(pages_result) > 0:
+		result += pg_metadata_to_json(pages_result[0])
+		for pgdata in pages_result[1:]:
+			result += ',\n' + pg_metadata_to_json(pgdata)
+	return result + "]"
