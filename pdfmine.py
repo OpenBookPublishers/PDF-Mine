@@ -34,12 +34,14 @@ __version__="0.5a"
 __author__="Jason Norwood-Young"
 __license__="MIT"
 
-from pdfminer.pdfparser import PDFParser, PDFDocument
+from pdfminer.pdfparser import PDFParser
+from pdfminer.pdfdocument import PDFDocument
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.pdfdevice import PDFDevice
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LAParams, LTTextBox, LTTextLine, LTFigure, LTImage
 import os
+from pdfminer.pdfpage import PDFPage
 
 class PDFMine:
 	def __init__(self, filename):
@@ -47,10 +49,8 @@ class PDFMine:
 		self.filename=filename
 		self.fp=open(filename, "rb")
 		self.parser=PDFParser(self.fp)
-		self.doc=PDFDocument()
+		self.doc=PDFDocument(self.parser)
 		self.parser.set_document(self.doc)
-		self.doc.set_parser(self.parser)
-		self.doc.initialize()
 		self.pagecount=self.pgcount()
 		print "Page count %i" % self.pagecount
 		if self.doc.is_extractable:
@@ -64,8 +64,8 @@ class PDFMine:
 		
 	def pgcount(self):
 		count=0;
-		for page in self.doc.get_pages():
-			count=count+1
+		for page in PDFPage.create_pages(self.doc):
+			count = count + 1
 		return count
 		
 	def save_video(self, targetdir):
@@ -114,7 +114,7 @@ class PDFMine:
 	def parse_pages(self):
 		result=[]
 		i=0
-		for page in self.doc.get_pages():
+		for page in PDFPage.create_pages(self.doc):
 			self.pgbox=page.mediabox
 			i=i+1
 			print "==== Page %d ====" % i
@@ -176,9 +176,9 @@ class PDFMine:
 									pg=name[0].resolve()
 									dest=self._find_objid_pgnum(pg)
 									
+						rect=self._rect(annotobj['Rect'])
 						if (obj.has_key('URI')):
 							dest=obj['URI']
-						rect=self._rect(annotobj['Rect'])
 						link={"rect":rect, "type":linktype,"dest": dest}
 						result.append(link)
 				except:
