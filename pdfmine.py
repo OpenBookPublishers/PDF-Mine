@@ -5,6 +5,8 @@ https://github.com/euske/pdfminer/
 
 Copyright 2011 10Layer Software Development Pty (Ltd)
 http://10layer.com
+Copyright 2015 Open Book Publishers
+http://www.openbookpublishers.com
 
 Licensed under the MIT license
 http://www.opensource.org/licenses/mit-license.php
