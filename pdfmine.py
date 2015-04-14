@@ -279,6 +279,10 @@ class PDFMine:
 		print "Metadata to JSON:"
 		print metadata_to_json(result)
 
+	def metadata_to_json(self):
+		result=self.parse_pages()
+		return metadata_to_json(result)
+
 
 def link_metadata_to_json(link_mdata):
 	result = ""
