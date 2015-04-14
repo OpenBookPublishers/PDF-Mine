@@ -47,7 +47,8 @@ from pdfminer.pdfpage import PDFPage
 import urllib
 
 class PDFMine:
-	def __init__(self, filename):
+	def __init__(self, filename, verbose = False):
+		self.verbose = verbose
 		self.result = {}
 		self.filename=filename
 		self.fp=open(filename, "rb")
@@ -55,9 +56,9 @@ class PDFMine:
 		self.doc=PDFDocument(self.parser)
 		self.parser.set_document(self.doc)
 		self.pagecount=self.pgcount()
-		print "Page count %i" % self.pagecount
+		if self.verbose: print "Page count %i" % self.pagecount
 		if self.doc.is_extractable:
-			print "Starting extraction of %s" % self.filename
+			if self.verbose: print "Starting extraction of %s" % self.filename
 		else:
 			print "Oops, error extracting %s" % self.filename
 			raise()
@@ -123,7 +124,7 @@ class PDFMine:
 		for page in PDFPage.create_pages(self.doc):
 			self.pgbox=page.mediabox
 			i=i+1
-			print "==== Page %d ====" % i
+			if self.verbose: print "==== Page %d ====" % i
 			pgbox=self.pgbox
 			pgwidth=round(abs(pgbox[0]-pgbox[2]))
 			pgheight=round(abs(pgbox[1]-pgbox[3]))
@@ -180,7 +181,7 @@ class PDFMine:
 				try:
 					if (annotobj["Subtype"].name=='Link') and (annotobj.has_key("A")):
 						linktype="link"
-						print "Found link"
+						if self.verbose: print "Found link"
 						obj=annotobj["A"].resolve()
 						dest=""
 
@@ -224,7 +225,7 @@ class PDFMine:
 					if (annotobj["Subtype"].name=='RichMedia'):
 						linktype="media"
 						rect=self._rect(annotobj['Rect'])
-						print "Found video"
+						if self.verbose: print "Found video"
 						data=annotobj["RichMediaContent"].resolve()
 						dataobj=data["Assets"].resolve()
 						fstream=dataobj["Names"][1].resolve()
