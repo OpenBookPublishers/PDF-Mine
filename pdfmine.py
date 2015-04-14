@@ -276,6 +276,7 @@ class PDFMine:
 		print result
 		print "Found %d pages" % (self.pagecount)
 		print self.get_sections()
+		print "Metadata to JSON:"
 		print metadata_to_json(result)
 
 
