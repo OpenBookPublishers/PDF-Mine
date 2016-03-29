@@ -183,14 +183,17 @@ class PDFMine:
 					if (annotobj["Subtype"].name=='Link') and (annotobj.has_key("A")):
 						linktype="link"
 						if self.verbose: print "Found link"
-						obj=annotobj["A"].resolve()
+						if self.verbose: print ("Annotobj:" + str(annotobj))
+						obj = annotobj["A"]
+						if self.verbose: print ("Obj:" + str(obj))
 						dest=""
 
 						rect=self._rect(annotobj['Rect'])
 
 						if (obj.has_key('D')):
 							linktype="bookmark"
-							dest = self._find_objid_pgnum(self.doc.get_dest(obj["D"])[0].resolve())
+							dest = self._find_objid_pgnum(((self.doc.get_dest(obj["D"]).resolve())[0]).resolve())
+							if self.verbose: print "  (is bookmark to " + str(dest) + ")"
 							metadata = {"dest_page" : '\"' + str(dest) + '\"',
 							            "x" : str(rect['x']),
 							            "y" : str(rect['y']),
@@ -200,6 +203,7 @@ class PDFMine:
 						if (obj.has_key('URI')):
 							dest=obj['URI']
 							encoded_uri = urllib.quote_plus(str(dest), safe=':/?=&#;')
+							if self.verbose: print "  (is URI " + encoded_uri + ")"
 							metadata = {"url" : '"' + encoded_uri + '"',
 							            "x" : str(rect['x']),
 							            "y" : str(rect['y']),
