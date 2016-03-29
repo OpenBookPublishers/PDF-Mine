@@ -46,6 +46,8 @@ import os
 from pdfminer.pdfpage import PDFPage
 import urllib
 
+from pdfminer.pdfdocument import PDFDestinationNotFound
+
 class PDFMine:
 	def __init__(self, filename, verbose = False):
 		self.verbose = verbose
@@ -90,8 +92,7 @@ class PDFMine:
 							f=open(os.path.join(targetdir,filename),"w")
 							f.write(fdata)
 							f.close()
-					except:
-						pass
+					except Exception, e: raise e
 		
 	def _rect(self, bbox):
 		""" Changes a bounding box into something we can use 
@@ -208,10 +209,12 @@ class PDFMine:
 						link={"rect":rect, "type":linktype,"dest": dest}
 						main_result.append(link)
 						links_metadata.append(metadata)
-				except:
+				except PDFDestinationNotFound:
 					#FIXME DRY principle
 					return {"main_result" : main_result,
 					        "links_metadata" : links_metadata}
+
+				except Exception, e: raise e
 		return {"main_result" : main_result,
 		        "links_metadata" : links_metadata}
 			
@@ -232,8 +235,7 @@ class PDFMine:
 						filename=fstream["F"]
 						link={"rect":rect, "type":linktype, "filename":filename}
 						result.append(link)
-				except:
-					pass
+				except Exception, e: raise e
 		return result
 			
 	def _intersects(self, layout, obj):
@@ -261,13 +263,13 @@ class PDFMine:
 				    destsobj=a.resolve()
 				    pgobj=destsobj["D"][0]
 				    objid=pgobj.objid
+
 				x=1;
 				for page in PDFPage.create_pages(self.doc):
 				    if page.pageid==objid:
 				    	toc.append({"name": title, "page": x});
 				    x=x+1
-		except:
-			pass
+		except Exception, e: raise e
 		return toc
 
 	def test(self):
