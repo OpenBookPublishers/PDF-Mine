@@ -184,7 +184,7 @@ class PDFMine:
 						linktype="link"
 						if self.verbose: print "Found link"
 						if self.verbose: print ("Annotobj:" + str(annotobj))
-						obj = annotobj["A"]
+						obj = (annotobj["A"]).resolve()
 						if self.verbose: print ("Obj:" + str(obj))
 						dest=""
 
@@ -192,7 +192,7 @@ class PDFMine:
 
 						if (obj.has_key('D')):
 							linktype="bookmark"
-							dest = self._find_objid_pgnum(((self.doc.get_dest(obj["D"]).resolve())[0]).resolve())
+							dest = self._find_objid_pgnum(((self.doc.get_dest(obj["D"]))[0]).resolve())
 							if self.verbose: print "  (is bookmark to " + str(dest) + ")"
 							metadata = {"dest_page" : '\"' + str(dest) + '\"',
 							            "x" : str(rect['x']),
