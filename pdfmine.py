@@ -92,7 +92,7 @@ class PDFMine:
 							f=open(os.path.join(targetdir,filename),"w")
 							f.write(fdata)
 							f.close()
-					except Exception, e: raise e
+					except Exception: raise
 		
 	def _rect(self, bbox):
 		""" Changes a bounding box into something we can use 
