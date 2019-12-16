@@ -58,11 +58,11 @@ class PDFMine:
 		self.doc=PDFDocument(self.parser)
 		self.parser.set_document(self.doc)
 		self.pagecount=self.pgcount()
-		if self.verbose: print "Page count %i" % self.pagecount
+		if self.verbose: print("Page count %i" % self.pagecount)
 		if self.doc.is_extractable:
-			if self.verbose: print "Starting extraction of %s" % self.filename
+			if self.verbose: print("Starting extraction of %s" % self.filename)
 		else:
-			print "Oops, error extracting %s" % self.filename
+			print("Oops, error extracting %s" % self.filename)
 			raise()
 		
 	def close(self):
@@ -125,7 +125,7 @@ class PDFMine:
 		for page in PDFPage.create_pages(self.doc):
 			self.pgbox=page.mediabox
 			i=i+1
-			if self.verbose: print "==== Page %d ====" % i
+			if self.verbose: print*"==== Page %d ====" % i)
 			pgbox=self.pgbox
 			pgwidth=round(abs(pgbox[0]-pgbox[2]))
 			pgheight=round(abs(pgbox[1]-pgbox[3]))
@@ -182,10 +182,10 @@ class PDFMine:
 				try:
 					if (annotobj["Subtype"].name=='Link') and (annotobj.has_key("A")):
 						linktype="link"
-						if self.verbose: print "Found link"
-						if self.verbose: print ("Annotobj:" + str(annotobj))
+						if self.verbose: print("Found link")
+						if self.verbose: print("Annotobj:" + str(annotobj))
 						obj = (annotobj["A"]).resolve()
-						if self.verbose: print ("Obj:" + str(obj))
+						if self.verbose: print("Obj:" + str(obj))
 						dest=""
 
 						rect=self._rect(annotobj['Rect'])
@@ -193,7 +193,7 @@ class PDFMine:
 						if (obj.has_key('D')):
 							linktype="bookmark"
 							dest = self._find_objid_pgnum(((self.doc.get_dest(obj["D"]))[0]).resolve())
-							if self.verbose: print "  (is bookmark to " + str(dest) + ")"
+							if self.verbose: print("  (is bookmark to " + str(dest) + ")")
 							metadata = {"dest_page" : '\"' + str(dest) + '\"',
 							            "x" : str(rect['x']),
 							            "y" : str(rect['y']),
@@ -203,7 +203,7 @@ class PDFMine:
 						if (obj.has_key('URI')):
 							dest=obj['URI']
 							encoded_uri = urllib.quote_plus(str(dest), safe=':/?=&#;')
-							if self.verbose: print "  (is URI " + encoded_uri + ")"
+							if self.verbose: print("  (is URI " + encoded_uri + ")")
 							metadata = {"url" : '"' + encoded_uri + '"',
 							            "x" : str(rect['x']),
 							            "y" : str(rect['y']),
@@ -232,7 +232,7 @@ class PDFMine:
 					if (annotobj["Subtype"].name=='RichMedia'):
 						linktype="media"
 						rect=self._rect(annotobj['Rect'])
-						if self.verbose: print "Found video"
+						if self.verbose: print("Found video")
 						data=annotobj["RichMediaContent"].resolve()
 						dataobj=data["Assets"].resolve()
 						fstream=dataobj["Names"][1].resolve()
@@ -277,13 +277,13 @@ class PDFMine:
 		return toc
 
 	def test(self):
-		print "Starting test on %s" % self.filename
+		print("Starting test on %s" % self.filename)
 		result=self.parse_pages()
-		print result
-		print "Found %d pages" % (self.pagecount)
-		print self.get_sections()
-		print "Metadata to JSON:"
-		print metadata_to_json(result)
+		print(result)
+		print("Found %d pages" % (self.pagecount))
+		print(self.get_sections())
+		print("Metadata to JSON:")
+		print(metadata_to_json(result))
 
 	def metadata_to_json(self):
 		result=self.parse_pages()
@@ -315,7 +315,7 @@ def link_metadata_to_json(link_mdata):
 			'\"width\" : ' +
 			str(link_mdata["width"]) + '}')
 	else:
-		print "Unrecognised link metadata"
+		print("Unrecognised link metadata")
 		exit (1)
 	return result
 
