@@ -218,7 +218,7 @@ class PDFMine:
 					return {"main_result" : main_result,
 					        "links_metadata" : links_metadata}
 
-				except Exception, e: raise e
+				except Exception: raise
 		return {"main_result" : main_result,
 		        "links_metadata" : links_metadata}
 			
@@ -239,7 +239,7 @@ class PDFMine:
 						filename=fstream["F"]
 						link={"rect":rect, "type":linktype, "filename":filename}
 						result.append(link)
-				except Exception, e: raise e
+				except Exception: raise
 		return result
 			
 	def _intersects(self, layout, obj):
@@ -273,7 +273,7 @@ class PDFMine:
 				    if page.pageid==objid:
 				    	toc.append({"name": title, "page": x});
 				    x=x+1
-		except Exception, e: raise e
+		except Exception: raise
 		return toc
 
 	def test(self):
