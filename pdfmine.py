@@ -125,7 +125,7 @@ class PDFMine:
 		for page in PDFPage.create_pages(self.doc):
 			self.pgbox=page.mediabox
 			i=i+1
-			if self.verbose: print*"==== Page %d ====" % i)
+			if self.verbose: print("==== Page %d ====" % i)
 			pgbox=self.pgbox
 			pgwidth=round(abs(pgbox[0]-pgbox[2]))
 			pgheight=round(abs(pgbox[1]-pgbox[3]))
